@@ -1,0 +1,58 @@
+name: Dependency Updates
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'  # Run weekly on Sunday
+
+jobs:
+  update-dependencies:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.8'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Check for updates
+      run: |
+        pip install pip-tools
+        pip-compile --upgrade requirements.in
+        if git diff --quiet requirements.txt; then
+          echo "No updates available"
+        else
+          echo "Updates available"
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add requirements.txt
+          git commit -m "Update dependencies"
+          git push
+        fi
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Check frontend dependencies
+      run: |
+        cd frontend
+        npm install
+        npm outdated
+        if git diff --quiet package-lock.json; then
+          echo "No frontend updates available"
+        else
+          echo "Frontend updates available"
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add package-lock.json
+          git commit -m "Update frontend dependencies"
+          git push
+        fi 
